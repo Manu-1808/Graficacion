@@ -13,7 +13,8 @@ class BarraHerramientas:
                 "Bresenham",
                 "Bezier",
                 "B-Spline",
-                "Traslacion"
+                "Traslacion",
+                "Rotacion"
             ],
             starting_option="DDA",
             relative_rect=pygame.Rect(
@@ -103,3 +104,26 @@ class BarraHerramientas:
         )
 
         self.input_ty.set_text("5")
+
+        self.lbl_theta = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(
+                20,
+                370,
+                60,
+                30
+            ),
+            text="Theta:",
+            manager=manager
+        )
+
+        self.input_theta = pygame_gui.elements.UITextEntryLine(
+            relative_rect=pygame.Rect(
+                80,
+                370,
+                60,
+                30
+            ),
+            manager=manager
+        )
+
+        self.input_theta.set_text("45")

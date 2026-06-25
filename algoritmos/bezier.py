@@ -41,6 +41,6 @@ def calcular(puntos_control):
 
         paso += 1
 
-        t += 0.01
+        t += 0.0001
 
     return resultado

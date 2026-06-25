@@ -1,3 +1,4 @@
+import numpy as np
 import pygame
 import pygame_gui
 
@@ -84,6 +85,38 @@ panel_explicacion = PanelExplicacion(
 )
 
 explicador = ExplicadorAlgoritmos()
+
+
+def matriz_rotacion_centro(angulo, cx, cy):
+    """Devuelve una matriz homogénea 3x3 de rotación alrededor de (cx, cy)."""
+    r = np.radians(angulo)
+    R = np.array([
+        [np.cos(r), -np.sin(r), 0],
+        [np.sin(r), np.cos(r), 0],
+        [0, 0, 1]
+    ])
+    T1 = np.array([
+        [1, 0, cx],
+        [0, 1, cy],
+        [0, 0, 1]
+    ])
+    T2 = np.array([
+        [1, 0, -cx],
+        [0, 1, -cy],
+        [0, 0, 1]
+    ])
+    return T1 @ R @ T2
+
+
+def aplicar_transformacion(puntos, matriz):
+    """Aplica una matriz homogénea 3x3 a una lista de puntos (x, y)."""
+    if len(puntos) == 0:
+        return []
+    arr = np.array(puntos, dtype=float)
+    homog = np.hstack((arr, np.ones((len(arr), 1))))
+    resultado = (matriz @ homog.T).T
+    return [tuple(p[:2]) for p in resultado]
+
 
 # variables globales
 
@@ -194,6 +227,29 @@ def actualizar_explicacion():
                 La traslación es una transformación
                 geométrica fundamental.
                 """
+        elif algoritmo_actual == "Rotacion":
+            if len(puntos_control) > 0:
+                try:
+                    theta = float(herramientas.input_theta.get_text())
+                    texto = explicador.rotacion(puntos_control, theta, 0, 0)
+                except:
+                    texto = r"""
+                    \textbf{Transformación de Rotación}
+
+                    Ingresa un valor numérico para Theta.
+
+                    La rotación gira los puntos alrededor
+                    de su centro usando coordenadas homogéneas.
+                    """
+            else:
+                texto = r"""
+                \textbf{Transformación de Rotación}
+
+                Agrega puntos para rotar.
+
+                La rotación gira la figura alrededor
+                de su centro de masa.
+                """
     else:
         # Mostrar explicación del paso actual
         paso = min(indice_actual, len(iteraciones) - 1)
@@ -255,6 +311,20 @@ def actualizar_explicacion():
                         texto = "Error en valores de traslación"
                 else:
                     texto = "No hay puntos para trasladar"
+            elif algoritmo_actual == "Rotacion":
+                if len(puntos_control) > 0:
+                    try:
+                        theta = float(herramientas.input_theta.get_text())
+                        texto = explicador.rotacion(
+                            puntos_control,
+                            theta,
+                            indice_actual,
+                            len(puntos_control)
+                        )
+                    except:
+                        texto = "Error en valores de rotación"
+                else:
+                    texto = "No hay puntos para rotar"
 
     panel_explicacion.actualizar(texto, fuente)
 
@@ -288,6 +358,10 @@ def recalcular_curva():
             )
 
             actualizar_explicacion()
+
+    elif algoritmo_actual == "Rotacion":
+        # No se recalcula curva para rotación, el botón ejecuta directamente la transformación
+        actualizar_explicacion()
 
 
 def aplicar_traslacion():
@@ -350,6 +424,57 @@ def aplicar_traslacion():
 
     barra_estado.actualizar(
         f"Traslacion aplicada ({tx},{ty})"
+    )
+
+    actualizar_explicacion()
+
+
+def aplicar_rotacion():
+    global puntos_control
+    global iteraciones
+    global indice_actual
+
+    if len(puntos_control) == 0:
+        barra_estado.actualizar(
+            "No hay puntos para rotar"
+        )
+        return
+
+    try:
+        theta = float(
+            herramientas.input_theta.get_text()
+        )
+    except:
+        barra_estado.actualizar(
+            "Theta debe ser numerico"
+        )
+        return
+
+    arr = np.array(
+        puntos_control,
+        dtype=float
+    )
+    if len(puntos_control) > 1 and puntos_control[0] == puntos_control[-1]:
+        centro_arr = arr[:-1]
+    else:
+        centro_arr = arr
+
+    cx, cy = centro_arr.mean(axis=0)
+    matriz = matriz_rotacion_centro(
+        theta,
+        cx,
+        cy
+    )
+
+    puntos_control = aplicar_transformacion(
+        puntos_control,
+        matriz
+    )
+    iteraciones = []
+    indice_actual = 0
+
+    barra_estado.actualizar(
+        f"Rotación aplicada ({theta}°)"
     )
 
     actualizar_explicacion()
@@ -494,6 +619,10 @@ while running:
                 if algoritmo_actual == "Traslacion":
 
                     aplicar_traslacion()
+
+                elif algoritmo_actual == "Rotacion":
+
+                    aplicar_rotacion()
 
                 elif algoritmo_actual == "Bezier":
 
@@ -896,9 +1025,10 @@ while running:
 
         tx = herramientas.input_tx.get_text()
         ty = herramientas.input_ty.get_text()
+        theta = herramientas.input_theta.get_text()
 
         txt = fuente.render(
-            f"Tx={tx} Ty={ty}",
+            f"Tx={tx} Ty={ty} Theta={theta}",
             True,
             (255, 255, 255)
         )

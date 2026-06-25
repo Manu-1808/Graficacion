@@ -218,24 +218,45 @@ class ExplicadorAlgoritmos:
                     {'texto': 'cantidad en la misma dirección.', 'color': (150, 255, 150)},
                 ]
             }
+
+    @staticmethod
+    def rotacion(puntos, theta, paso_actual, total_pasos):
+        """Explicación amigable de la rotación"""
+
+        if paso_actual <= 0:
+            return {
+                'titulo': 'Rotación - Girar la figura',
+                'color': (200, 200, 255),
+                'lineas': [
+                    {'texto': 'La rotación gira todos los puntos', 'color': (220, 220, 220)},
+                    {'texto': 'alrededor de un punto central.', 'color': (220, 220, 220)},
+                    {'texto': '', 'color': (220, 220, 220)},
+                    {'texto': 'Usaremos coordenadas homogéneas', 'color': (255, 200, 100)},
+                    {'texto': 'para realizar la transformación con una', 'color': (220, 220, 220)},
+                    {'texto': 'matriz 3x3.', 'color': (220, 220, 220)},
+                    {'texto': '', 'color': (220, 220, 220)},
+                    {'texto': f'  • Ángulo: {theta}°', 'color': (200, 200, 200)},
+                    {'texto': f'  • Puntos: {len(puntos)}', 'color': (200, 200, 200)},
+                    {'texto': '', 'color': (220, 220, 220)},
+                    {'texto': 'Primero trasladamos, luego rotamos', 'color': (150, 255, 150)},
+                    {'texto': 'y finalmente regresamos al centro original.', 'color': (150, 255, 150)},
+                ]
+            }
         else:
             idx = min(paso_actual - 1, len(puntos) - 1)
             if idx < len(puntos):
                 punto = puntos[idx]
                 return {
-                    'titulo': f'Traslación - Moviendo punto {idx + 1} de {len(puntos)}',
-                    'color': (100, 255, 200),
+                    'titulo': f'Rotación - Procesando punto {idx + 1} de {len(puntos)}',
+                    'color': (200, 200, 255),
                     'lineas': [
-                        {'texto': 'Moviendo el punto...', 'color': (220, 220, 220)},
-                        {'texto': f'  • Posición original: ({punto[0] - tx:.0f}, {punto[1] - ty:.0f})',
-                         'color': (200, 200, 200)},
-                        {'texto': f'  • Movimiento: ({tx}, {ty})', 'color': (255, 200, 100)},
+                        {'texto': 'Rotando el punto alrededor del centro.', 'color': (220, 220, 220)},
+                        {'texto': f'  • Punto original: ({punto[0]:.0f}, {punto[1]:.0f})', 'color': (200, 200, 200)},
+                        {'texto': f'  • Ángulo: {theta}°', 'color': (255, 200, 100)},
                         {'texto': '', 'color': (220, 220, 220)},
-                        {'texto': f'  • Nueva posición: ({punto[0]:.0f}, {punto[1]:.0f})', 'color': (150, 255, 150)},
-                        {'texto': '', 'color': (220, 220, 220)},
-                        {'texto': 'Es como tomar el punto y', 'color': (200, 200, 200)},
-                        {'texto': 'desplazarlo en la cuadrícula.', 'color': (200, 200, 200)},
-                        {'texto': f'→ Nuevo píxel: ({round(punto[0])}, {round(punto[1])})', 'color': (255, 255, 150)},
+                        {'texto': 'Cada punto se transforma con', 'color': (150, 255, 150)},
+                        {'texto': 'una matriz 3x3 de coordenadas homogéneas.', 'color': (150, 255, 150)},
+                        {'texto': f'→ Nuevo punto: ({round(punto[0])}, {round(punto[1])})', 'color': (255, 255, 150)},
                     ]
                 }
         return None
