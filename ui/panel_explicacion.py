@@ -18,12 +18,11 @@ class PanelExplicacion:
             self.fuente_pequena = pygame.font.SysFont("Consolas", 15)
 
     def dibujar(self, screen):
-        """Dibuja el panel con estilo mejorado"""
-        # Fondo con gradiente simulado
+        # fondo
         pygame.draw.rect(screen, (30, 30, 35), self.rect)
         pygame.draw.rect(screen, (60, 60, 70), self.rect, 2)
 
-        # Borde superior con color del algoritmo
+        # borde con color
         if self.datos and 'color' in self.datos:
             color_borde = self.datos['color']
             pygame.draw.line(
@@ -35,7 +34,7 @@ class PanelExplicacion:
             )
 
         if not self.datos or 'lineas' not in self.datos:
-            # Mensaje por defecto
+            # msj por defecto
             if self.fuente:
                 texto = self.fuente.render(
                     "Selecciona un algoritmo",
@@ -56,7 +55,7 @@ class PanelExplicacion:
                 screen.blit(texto2, (x, y))
             return
 
-        # Dibujar título
+        # titulo
         if 'titulo' in self.datos and self.fuente_titulo:
             titulo = self.fuente_titulo.render(
                 self.datos['titulo'],
@@ -65,7 +64,7 @@ class PanelExplicacion:
             )
             screen.blit(titulo, (self.rect.x + 15, self.rect.y + 10))
 
-        # Dibujar líneas
+        # dibujo de lineas
         y = self.rect.y + 50
         for linea in self.datos['lineas']:
             if y > self.rect.y + self.rect.height - 20:
@@ -78,14 +77,14 @@ class PanelExplicacion:
                 y += 8
                 continue
 
-            # Renderizar con la fuente apropiada
+            # dibujar la fuente
             if self.fuente:
                 render = self.fuente.render(texto, True, color)
                 x = self.rect.x + 20
                 screen.blit(render, (x, y))
                 y += 28
 
-        # Indicador de progreso (si está en ejecución)
+        # indica ejecucion
         if 'progreso' in self.datos:
             progreso = self.datos['progreso']
             ancho_barra = self.rect.width - 40
