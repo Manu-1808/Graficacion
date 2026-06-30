@@ -14,7 +14,8 @@ class BarraHerramientas:
                 "Bezier",
                 "B-Spline",
                 "Traslacion",
-                "Rotacion"
+                "Rotacion",
+                "Graficas 3D"
             ],
             starting_option="DDA",
             relative_rect=pygame.Rect(
