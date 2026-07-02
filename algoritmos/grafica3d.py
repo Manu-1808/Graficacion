@@ -1,10 +1,10 @@
 import numpy as np
 
-def generar_esfera(radio=10, resolucion=30):
+def generar_esfera(radio, resolucion):
     u = np.linspace(0, 2 * np.pi, resolucion)
     v = np.linspace(0, np.pi, resolucion)
 
-    #creacion de la regilla
+    #creacion de la regill
     u,v = np.meshgrid(u, v)
     #aplicamos ecuaciones parametricas
     x = radio * np.cos(u) * np.sin(v)
