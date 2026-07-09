@@ -2,27 +2,9 @@ import numpy as np
 import pygame
 
 
-# ============================================================
-#  Sombreado interactivo: Gouraud vs Phong
-# ============================================================
-# Este módulo convierte el ejemplo de Matplotlib en una experiencia
-# interactiva dentro de Pygame.
-#
-# Interacciones:
-#   - Mueve el mouse sobre el lienzo: cambia la posición de la luz.
-#   - Arrastra los vértices del triángulo: cambia la geometría.
-#   - Rueda del mouse: aumenta/disminuye el brillo especular.
-#
-# La idea didáctica:
-#   Gouraud calcula la luz en los vértices y la interpola.
-#   Phong interpola las normales y calcula la luz en cada píxel.
-# ============================================================
-
-
 def normalizar(v):
     # esta funcion deja los vectores con tamaño uno.
     # asi se pueden comparar y usar mejor en los calculos.
-    """Normaliza un vector o un arreglo de vectores de forma segura."""
     v = np.asarray(v, dtype=float)
     norma = np.linalg.norm(v, axis=-1, keepdims=True)
     return v / np.where(norma > 0, norma, 1)
@@ -31,16 +13,7 @@ def normalizar(v):
 def modelo_phong(N, L, V, ka=0.1, kd=0.6, ks=0.4, n=32):
     # este modelo mide como se ve la luz en la superficie.
     # combina luz ambiental, difusa y especular para dar efecto.
-    """Modelo de iluminación Phong.
 
-    N: normal de la superficie.
-    L: dirección hacia la luz.
-    V: dirección hacia la cámara/observador.
-    ka: luz ambiental.
-    kd: luz difusa.
-    ks: luz especular.
-    n: brillo especular.
-    """
     N = normalizar(N)
     L = normalizar(L)
     V = normalizar(V)
@@ -59,7 +32,6 @@ def modelo_phong(N, L, V, ka=0.1, kd=0.6, ks=0.4, n=32):
 
 
 def baricentrica_vectorizada(X, Y, A, B, C):
-    """Calcula coordenadas baricéntricas para todos los pixeles."""
     v0 = B - A
     v1 = C - A
 
@@ -76,7 +48,6 @@ def baricentrica_vectorizada(X, Y, A, B, C):
     denom = d00 * d11 - d01 * d01
 
     if abs(denom) < 1e-8:
-        # Triángulo degenerado: todos los pesos quedan fuera.
         u = np.zeros_like(X, dtype=float)
         v = np.zeros_like(X, dtype=float)
         w = np.zeros_like(X, dtype=float)
@@ -90,10 +61,6 @@ def baricentrica_vectorizada(X, Y, A, B, C):
 
 
 def colorizar_intensidad(intensidad):
-    """Convierte una matriz de intensidad en imagen RGB.
-
-    Se usa un gradiente propio para no depender de colormaps externos.
-    """
     i = np.clip(intensidad, 0, 1)
 
     r = np.clip(40 + 230 * i, 0, 255)
@@ -105,7 +72,6 @@ def colorizar_intensidad(intensidad):
 
 
 class EstadoSombreadoInteractivo:
-    """Estado del modo interactivo Gouraud vs Phong."""
 
     def __init__(self, resolucion=260):
         self.resolucion = resolucion
@@ -160,7 +126,6 @@ class EstadoSombreadoInteractivo:
         self.dirty = True
 
     def mover_luz_desde_lienzo(self, pos_local):
-        """Mueve la luz usando la posición del mouse en el lienzo."""
         if self.rect_gouraud and self.rect_gouraud.collidepoint(pos_local):
             x = (pos_local[0] - self.rect_gouraud.x) / max(1, self.escala_dibujo)
             y = (pos_local[1] - self.rect_gouraud.y) / max(1, self.escala_dibujo)
@@ -220,12 +185,10 @@ class EstadoSombreadoInteractivo:
         self.vertice_arrastrando = None
 
     def cambiar_brillo(self, delta):
-        """Cambia el exponente especular con la rueda del mouse."""
         self.brillo_n = int(np.clip(self.brillo_n + delta, 4, 128))
         self.marcar_dirty()
 
     def _convertir_pos_a_img(self, pos_local):
-        """Convierte posición del lienzo a coordenada interna del render."""
         if self.rect_gouraud and self.rect_gouraud.collidepoint(pos_local):
             return np.array([
                 (pos_local[0] - self.rect_gouraud.x) / max(1, self.escala_dibujo),
@@ -241,7 +204,6 @@ class EstadoSombreadoInteractivo:
         return None
 
     def recalcular(self):
-        """Calcula las imágenes de Gouraud y Phong."""
         # aqui se generan las dos imagenes para comparar los estilos.
         res = self.resolucion
         A, B, C = self.A, self.B, self.C
@@ -339,7 +301,6 @@ class EstadoSombreadoInteractivo:
 
 
 def dibujar_sombreado_interactivo(superficie, estado, CONFIG, fuente=None):
-    """Dibuja el comparador Gouraud vs Phong dentro del lienzo."""
     if estado.dirty or estado.surface_gouraud is None or estado.surface_phong is None:
         estado.recalcular()
 
@@ -384,7 +345,7 @@ def dibujar_sombreado_interactivo(superficie, estado, CONFIG, fuente=None):
     superficie.blit(titulo, (margen, 18))
 
     subtitulo = fuente_txt.render(
-        "Mueve la luz, arrastra los vértices y observa cómo cambia el sombreado.",
+        "Mueve la luz y compara cómo cambia el sombreado en ambos modelos.",
         True,
         (210, 210, 210)
     )
@@ -463,7 +424,6 @@ def _dibujar_luz(superficie, estado, rect):
 
 
 def manejar_clic_sombreado(evento, estado, CONFIG):
-    """Maneja clicks para el modo interactivo."""
     mouse_x, mouse_y = evento.pos
     local = (mouse_x - CONFIG['ANCHO_HERRAMIENTAS'], mouse_y)
 

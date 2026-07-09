@@ -8,14 +8,6 @@ except Exception:
 
 
 class PanelExplicacion:
-    """Panel lateral para explicaciones didácticas.
-
-    Soporta tres formatos:
-    1. str: texto simple, por compatibilidad.
-    2. dict con 'lineas': formato anterior del proyecto.
-    3. dict con 'bloques': nuevo formato con texto y fórmulas LaTeX.
-    """
-
     def __init__(self, x, y, ancho, alto):
         self.rect = pygame.Rect(x, y, ancho, alto)
         self.datos = None
@@ -39,16 +31,8 @@ class PanelExplicacion:
         self.alto_contenido = 0
         self.arrastrando_barra = False
 
-        # Elementos ya procesados para dibujar.
-        # Cada item puede ser:
-        # ('texto', texto, color, fuente_tipo)
-        # ('formula', surface)
-        # ('espacio', alto)
         self.elementos = []
 
-    # ------------------------------------------------------------------
-    # Actualización
-    # ------------------------------------------------------------------
     def actualizar(self, datos, fuente=None, reiniciar_scroll=True):
         self.datos = datos
         self.elementos = []
@@ -92,7 +76,6 @@ class PanelExplicacion:
                 self._agregar_texto(limpio, (210, 210, 210))
 
     def _procesar_formato_anterior(self, datos):
-        """Compatibilidad con el formato viejo: {'titulo', 'color', 'lineas'}."""
         self.titulo = datos.get("titulo", "Explicación")
         self.color_borde = datos.get("color", (100, 200, 255))
 
@@ -156,9 +139,6 @@ class PanelExplicacion:
             elif tipo == "espacio":
                 self._agregar_espacio(bloque.get("alto", 10))
 
-    # ------------------------------------------------------------------
-    # Construcción de elementos
-    # ------------------------------------------------------------------
     def _agregar_texto(self, texto, color, fuente_tipo="normal"):
         if not texto:
             self._agregar_espacio(8)
@@ -197,12 +177,6 @@ class PanelExplicacion:
         self._agregar_espacio(6)
 
     def _agregar_matriz(self, nombre, filas, color=(255, 255, 210)):
-        """Dibuja matrices en modo texto monoespaciado.
-
-        Matplotlib MathText no soporta entornos LaTeX como bmatrix sin
-        una instalación completa de LaTeX. Por eso las matrices se muestran
-        con texto alineado, pero con formato visual claro.
-        """
         if not filas:
             return
 
@@ -217,11 +191,11 @@ class PanelExplicacion:
             if len(filas_texto) == 1:
                 linea = f"{nombre} = [ {contenido} ]"
             elif i == 0:
-                linea = f"{nombre} = ⎡ {contenido} ⎤"
+                linea = f"{nombre} = [ {contenido} ]"
             elif i == len(filas_texto) - 1:
-                linea = f"    ⎣ {contenido} ⎦"
+                linea = f"    [ {contenido} ]"
             else:
-                linea = f"    ⎢ {contenido} ⎥"
+                linea = f"    | {contenido} |"
             lineas.append(linea)
 
         self._agregar_espacio(4)
@@ -270,9 +244,7 @@ class PanelExplicacion:
         texto = re.sub(r"\\[a-zA-Z]+", "", texto)
         return texto.strip()
 
-    # ------------------------------------------------------------------
-    # Scroll
-    # ------------------------------------------------------------------
+
     def _alto_visible(self):
         return self.rect.height - self.alto_titulo - 20
 
@@ -338,9 +310,6 @@ class PanelExplicacion:
             int(alto_barra),
         )
 
-    # ------------------------------------------------------------------
-    # Dibujo
-    # ------------------------------------------------------------------
     def dibujar(self, screen):
         pygame.draw.rect(screen, (30, 30, 35), self.rect)
         pygame.draw.rect(screen, (60, 60, 70), self.rect, 2)

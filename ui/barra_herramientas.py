@@ -22,9 +22,9 @@ class BarraHerramientas:
                 "Traslacion",
                 "Rotacion",
                 "Esfera 3D con rejillas",
-                "Esfera 3D Interactiva",
-                "Gouraud vs Phong",
                 "Cubo 3D",
+                "Esfera 3D Interactiva",
+                "Gouraud vs Phong"
             ],
             starting_option="DDA",
             relative_rect=pygame.Rect(

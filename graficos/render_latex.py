@@ -6,7 +6,6 @@ from typing import Tuple
 
 import pygame
 
-# Backend no interactivo. Importante para evitar que Matplotlib intente abrir ventanas.
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -15,7 +14,6 @@ Color = Tuple[int, int, int]
 
 
 def _color_a_mpl(color: Color) -> tuple[float, float, float]:
-    """Convierte color RGB 0-255 a Matplotlib 0-1."""
     return tuple(max(0, min(255, c)) / 255 for c in color)
 
 
@@ -27,11 +25,6 @@ def _renderizar_formula_cache(
     fontsize: int,
     dpi: int,
 ) -> bytes:
-    """Renderiza una fórmula y devuelve los bytes PNG.
-
-    Esta función está cacheada. La clave depende de la fórmula, color,
-    fondo, tamaño de fuente y DPI.
-    """
     formula = formula.strip()
 
     # MathText necesita que la expresión vaya entre signos $...$.
@@ -95,18 +88,6 @@ def renderizar_latex_a_surface(
     fontsize: int = 18,
     dpi: int = 160,
 ) -> pygame.Surface:
-    """Convierte una fórmula LaTeX/MathText a pygame.Surface.
-
-    Parámetros:
-        formula: Fórmula sin necesidad de incluir $...$.
-        color: Color RGB del texto.
-        fondo: Color RGB de fondo para integrarse con el panel.
-        fontsize: Tamaño de fuente matemático.
-        dpi: Resolución de renderizado.
-
-    Retorna:
-        pygame.Surface con la fórmula renderizada.
-    """
     try:
         png_bytes = _renderizar_formula_cache(
             formula.strip(),
@@ -118,6 +99,5 @@ def renderizar_latex_a_surface(
         return pygame.image.load(io.BytesIO(png_bytes), "formula.png").convert()
 
     except Exception:
-        # Fallback: si una fórmula falla, se muestra como texto plano.
         fuente = pygame.font.SysFont("Consolas", max(14, fontsize))
         return fuente.render(formula, True, color, fondo)

@@ -15,7 +15,6 @@ C_ALERTA = (255, 150, 150)
 
 
 def _doc(titulo, color, bloques):
-    """Crea el formato nuevo de explicación usado por PanelExplicacion."""
     return {
         "titulo": titulo,
         "color": color,
@@ -62,15 +61,6 @@ def _espacio(alto=8):
 
 
 class ExplicadorAlgoritmos:
-    """Explicaciones simples, pensadas para público no técnico.
-
-    El objetivo no es saturar de fórmulas, sino explicar qué está ocurriendo
-    y usar LaTeX solo para las partes importantes.
-    """
-
-    # ------------------------------------------------------------------
-    # Introducciones generales
-    # ------------------------------------------------------------------
     @staticmethod
     def intro(nombre_algoritmo, puntos=None):
         puntos = puntos or []
@@ -163,9 +153,6 @@ class ExplicadorAlgoritmos:
             _txt("Selecciona un algoritmo para ver una explicación."),
         ])
 
-    # ------------------------------------------------------------------
-    # DDA
-    # ------------------------------------------------------------------
     @staticmethod
     def dda(x1, y1, x2, y2, paso_actual, total_pasos):
         dx = x2 - x1
@@ -210,9 +197,6 @@ class ExplicadorAlgoritmos:
             _res(f"Píxel dibujado: ({round(x_actual)}, {round(y_actual)})"),
         ])
 
-    # ------------------------------------------------------------------
-    # Bresenham
-    # ------------------------------------------------------------------
     @staticmethod
     def bresenham(x1, y1, x2, y2, paso_actual, error_actual):
         dx = abs(x2 - x1)
@@ -253,9 +237,6 @@ class ExplicadorAlgoritmos:
             _res(f"Decisión: {'mover X' if mover_x else 'no mover X'} y {'mover Y' if mover_y else 'no mover Y'}."),
         ])
 
-    # ------------------------------------------------------------------
-    # Bézier
-    # ------------------------------------------------------------------
     @staticmethod
     def bezier(puntos, paso_actual, total_pasos, t_actual=0):
         n = len(puntos) - 1
@@ -313,9 +294,6 @@ class ExplicadorAlgoritmos:
 
         return _doc(f"Bézier · Paso {paso_actual}/{total_pasos}", C_AZUL, bloques)
 
-    # ------------------------------------------------------------------
-    # B-Spline
-    # ------------------------------------------------------------------
     @staticmethod
     def bspline(puntos, paso_actual, total_pasos, t_actual=0):
         if len(puntos) < 4:
@@ -355,9 +333,6 @@ class ExplicadorAlgoritmos:
             _txt(f"[t³, t², t, 1] = [{t**3:.3f}, {t**2:.3f}, {t:.3f}, 1]"),
         ])
 
-    # ------------------------------------------------------------------
-    # Traslación
-    # ------------------------------------------------------------------
     @staticmethod
     def traslacion(puntos, tx, ty, paso_actual, total_pasos):
         if not puntos:
@@ -391,9 +366,6 @@ class ExplicadorAlgoritmos:
             _res(f"Nuevo punto: ({x + tx:.0f}, {y + ty:.0f})"),
         ])
 
-    # ------------------------------------------------------------------
-    # Rotación
-    # ------------------------------------------------------------------
     @staticmethod
     def rotacion(puntos, theta, paso_actual, total_pasos):
         if not puntos:
@@ -433,9 +405,6 @@ class ExplicadorAlgoritmos:
             _res(f"Nuevo punto: ({x_new:.3f}, {y_new:.3f})"),
         ])
 
-    # ------------------------------------------------------------------
-    # Esfera con rejillas
-    # ------------------------------------------------------------------
     @staticmethod
     def esfera_3d(angulo_x, angulo_y):
         return _doc("Esfera 3D · Malla paramétrica", C_AZUL, [
@@ -454,9 +423,6 @@ class ExplicadorAlgoritmos:
             _txt(f"Ángulo Y: {angulo_y:.1f}°"),
         ])
 
-    # ------------------------------------------------------------------
-    # Cubo 3D
-    # ------------------------------------------------------------------
     @staticmethod
     def cubo_3d(angulo_x, angulo_y, distancia_vista):
         return _doc("Cubo 3D · Rotación y perspectiva", C_NARANJA, [
@@ -474,9 +440,6 @@ class ExplicadorAlgoritmos:
             _txt(f"Distancia de vista: {distancia_vista:.2f}"),
         ])
 
-    # ------------------------------------------------------------------
-    # Esfera interactiva con iluminación
-    # ------------------------------------------------------------------
     @staticmethod
     def explicacion(esfera):
         try:
@@ -507,3 +470,5 @@ class ExplicadorAlgoritmos:
             _txt(f"ka = {ka:.2f}, kd = {kd:.2f}, ks = {ks:.2f}"),
             _txt(f"Brillo especular n = {brillo}"),
         ])
+
+    
