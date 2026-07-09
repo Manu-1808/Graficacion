@@ -23,6 +23,7 @@ class BarraHerramientas:
                 "Rotacion",
                 "Esfera 3D con rejillas",
                 "Esfera 3D Interactiva",
+                "Gouraud vs Phong",
                 "Cubo 3D",
             ],
             starting_option="DDA",

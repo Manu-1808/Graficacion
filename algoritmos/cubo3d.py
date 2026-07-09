@@ -2,7 +2,8 @@
 import numpy as np
 import pygame
 
-# Vértices del cubo
+# estos son los puntos del cubo en tres dimensiones.
+# cada punto sirve para formar las caras y las aristas.
 VERTICES_CUBO = np.array([
     [-1, -1, -1, 1],
     [1, -1, -1, 1],
@@ -68,6 +69,7 @@ def generar_matriz_vista(z_dist):
     ])
 
 def renderizar_cubo(ang_x, ang_y, z_dist):
+    # aqui se rota el cubo para verlo desde otro lado.
     m_rot = np.dot(matriz_rotacion_y(ang_y), matriz_rotacion_x(ang_x))
     v_transformado = np.dot(VERTICES_CUBO, m_rot.T)
     v_view = np.dot(v_transformado, generar_matriz_vista(z_dist).T)

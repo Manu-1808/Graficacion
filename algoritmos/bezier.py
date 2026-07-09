@@ -1,6 +1,10 @@
 from modelos.iteracion import Iteracion
 import math
 
+# este archivo crea una curva usando polinomios de bezier.
+# cada punto de control ayuda a formar la forma de la curva.
+
+
 def calcular(puntos_control):
 
     resultado = []
@@ -11,6 +15,7 @@ def calcular(puntos_control):
 
     t = 0.0
 
+    # aqui se va recorriendo la curva poco a poco.
     while t <= 1.0:
 
         x = 0

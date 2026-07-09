@@ -1,5 +1,8 @@
 from modelos.iteracion import Iteracion
 
+# este archivo dibuja una linea paso a paso.
+# sirve para ir avanzando desde un punto hasta otro.
+
 
 def calcular(x1, y1, x2, y2):
 
@@ -27,6 +30,7 @@ def calcular(x1, y1, x2, y2):
     x = x1
     y = y1
 
+    # aqui se guardan todos los puntos de la linea.
     for paso in range(pasos + 1):
 
         resultado.append(

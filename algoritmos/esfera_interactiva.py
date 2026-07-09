@@ -3,6 +3,8 @@ import pygame
 
 
 class EsferaInteractiva:
+    # esta clase crea una esfera que se puede iluminar y mover.
+    # sirve para ver como cambia la luz sobre la superficie.
 
     def __init__(self, radio=0.8, resolucion=100):
         self.res = resolucion
@@ -26,6 +28,7 @@ class EsferaInteractiva:
         self.calcular_iluminacion()
 
     def crear_geometria(self):
+        # aqui se construye la forma de la esfera con muchos puntos.
 
         self.x = np.linspace(-1, 1, self.res)
         self.y = np.linspace(-1, 1, self.res)
@@ -75,6 +78,7 @@ class EsferaInteractiva:
         )
 
     def calcular_iluminacion(self):
+        # aqui se calcula cuanto brillo recibe la esfera.
 
         luz = self.luz_pos.reshape(
             1,

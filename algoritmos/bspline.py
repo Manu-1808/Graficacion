@@ -1,5 +1,9 @@
 from modelos.iteracion import Iteracion
 
+# este archivo hace curvas mas suaves con b-spline.
+# junta varios puntos para formar una linea mas redondeada.
+
+
 def calcular(puntos):
 
     resultado = []
@@ -9,6 +13,7 @@ def calcular(puntos):
 
     paso = 1
 
+    # este ciclo toma grupos de cuatro puntos para crear la curva.
     for i in range(len(puntos) - 3):
 
         p0 = puntos[i]

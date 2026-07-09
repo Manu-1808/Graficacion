@@ -11,6 +11,14 @@ from algoritmos.bspline import calcular as bspline
 from algoritmos.grafica3d import generar_esfera
 from algoritmos.cubo3d import EstadoCubo3D, dibujar_cubo, actualizar_cubo, manejar_clic_cubo, manejar_movimiento_cubo, manejar_soltar_cubo
 from algoritmos.esfera_interactiva import EsferaInteractiva
+from algoritmos.sombreado_interactivo import (
+    EstadoSombreadoInteractivo,
+    dibujar_sombreado_interactivo,
+    manejar_clic_sombreado,
+    manejar_movimiento_sombreado,
+    manejar_soltar_sombreado,
+    explicacion_sombreado,
+)
 from modelos.iteracion import Iteracion
 from graficos.camara import Camara
 from graficos.cuadricula import dibujar as dibujar_cuadricula
@@ -20,7 +28,8 @@ from ui.barra_herramientas import BarraHerramientas
 from ui.panel_explicacion import PanelExplicacion
 from algoritmos.explicaciones import ExplicadorAlgoritmos
 
-# configuraciones generales
+# aqui se guardan los tamaños y colores generales del programa.
+# estos valores ayudan a que todo se vea ordenado y en su lugar.
 CONFIG = {
     'ANCHO': 1600,
     'ALTO': 800,
@@ -41,6 +50,7 @@ CONFIG['ANCHO_LIENZO'] = CONFIG['ANCHO'] - CONFIG['ANCHO_HERRAMIENTAS'] - CONFIG
 CONFIG['ALTO_LIENZO'] = CONFIG['ALTO'] - CONFIG['ALTO_ESTADO']
 
 # ============ INICIALIZACIÓN ============
+# aqui se inicia pygame para poder dibujar cosas en pantalla.
 pygame.init()
 pantalla = pygame.display.set_mode((CONFIG['ANCHO'], CONFIG['ALTO']))
 pygame.display.set_caption("Visualizador de Algoritmos de Graficacion")
@@ -49,6 +59,8 @@ manager = pygame_gui.UIManager((CONFIG['ANCHO'], CONFIG['ALTO']))
 fuente = pygame.font.SysFont("Consolas", 18)
 
 # ============ OBJETOS GLOBALES ============
+# estos objetos se usan en muchas partes del programa.
+# guardan la camara, el lienzo y los paneles de la interfaz.
 camara = Camara()
 lienzo = Lienzo()
 barra_estado = BarraEstado()
@@ -60,6 +72,8 @@ panel_explicacion = PanelExplicacion(
 explicador = ExplicadorAlgoritmos()
 
 # ============ ESTADO GLOBAL ============
+# esta clase guarda lo que está pasando ahora mismo.
+# sirve para recordar puntos, modos y si algo se está moviendo.
 class EstadoGlobal:
     def __init__(self):
         self.algoritmo_actual = "DDA"
@@ -85,8 +99,11 @@ class EstadoGlobal:
 
 estado = EstadoGlobal()
 estado_cubo = EstadoCubo3D()  # Estado del cubo 3D
+estado_sombreado = EstadoSombreadoInteractivo()  # Estado Gouraud vs Phong
 
 # ============ FUNCIONES DE TRANSFORMACIÓN ============
+# estas funciones cambian la posicion de los puntos.
+# rotan y trasladan para mover las figuras en la pantalla.
 def matriz_rotacion_centro(angulo, cx, cy):
     """Crea matriz de rotación alrededor de un punto centro."""
     rad = np.radians(angulo)
@@ -105,6 +122,8 @@ def aplicar_transformacion(puntos, matriz):
     return [tuple(p[:2]) for p in (matriz @ homog.T).T]
 
 # ============ FUNCIONES 3D ============
+# estas funciones crean y dibujan objetos en tres dimensiones.
+# ayudan a ver formas como la esfera desde diferentes angulos.
 def generar_datos_esfera():
     """Genera o devuelve datos de la esfera."""
     if estado.esfera_datos is None:
@@ -221,6 +240,8 @@ def dibujar_indicador_luz(superficie, esfera, offset_x, offset_y, tamano):
                     (luz_px, luz_py), (centro_x, centro_y), 1)
 
 # ============ FUNCIONES DE ALGORITMOS ============
+# aqui se decide que hacer cuando se cambia de algoritmo.
+# se recalculan los puntos y se actualiza la explicacion.
 def recalcular_curva():
     """Recalcula la curva según el algoritmo actual."""
     if estado.algoritmo_actual == "Esfera 3D con rejillas":
@@ -228,6 +249,14 @@ def recalcular_curva():
         actualizar_explicacion()
         return
     
+    if estado.algoritmo_actual == "Gouraud vs Phong":
+        estado.iteraciones = [Iteracion(1, 0, 0, 0, 0)]
+        estado.indice_actual = 1
+        estado_sombreado.marcar_dirty()
+        barra_estado.actualizar("Gouraud vs Phong - Interactúa con la luz y el triángulo")
+        actualizar_explicacion()
+        return
+
     if estado.algoritmo_actual == "Cubo 3D":
         actualizar_cubo(estado_cubo)
         actualizar_explicacion()
@@ -235,6 +264,11 @@ def recalcular_curva():
     
     if estado.algoritmo_actual == "Esfera 3D Interactiva":
         # La esfera interactiva se actualiza en tiempo real
+        actualizar_explicacion()
+        return
+
+    if estado.algoritmo_actual == "Gouraud vs Phong":
+        estado_sombreado.marcar_dirty()
         actualizar_explicacion()
         return
     
@@ -296,11 +330,21 @@ def ejecutar_lineas():
     actualizar_explicacion()
 
 # ============ FUNCIONES DE UI ============
+# estas funciones cambian lo que se ve en el panel de explicacion.
+# sirven para mostrar texto simple sobre lo que está ocurriendo.
 def actualizar_explicacion():
     """Actualiza el panel de explicación."""
     if estado.algoritmo_actual == "Esfera 3D Interactiva":
         explicacion = explicador.explicacion(estado.esfera_interactiva)
         panel_explicacion.actualizar(explicacion, fuente, reiniciar_scroll=False)
+        return
+
+    if estado.algoritmo_actual == "Gouraud vs Phong":
+        panel_explicacion.actualizar(
+            explicacion_sombreado(estado_sombreado),
+            fuente,
+            reiniciar_scroll=False
+        )
         return
     
     if estado.algoritmo_actual == "Cubo 3D":
@@ -349,6 +393,11 @@ def obtener_texto_inicial():
                                  r"La luz sigue el cursor en tiempo real." + "\n" +
                                  r"Arrastra para rotar la vista." + "\n" +
                                  r"Renderizado con iluminación Blinn-Phong.",
+
+        "Gouraud vs Phong": r"\textbf{Gouraud vs Phong}" + "\n" +
+                             r"Compara dos técnicas de sombreado." + "\n" +
+                             r"Mueve la luz con el mouse." + "\n" +
+                             r"Arrastra vértices para cambiar el triángulo.",
         
         "Cubo 3D": r"\textbf{Cubo 3D}" + "\n" +
                    r"Arrastra con el mouse para rotar." + "\n" +
@@ -368,6 +417,9 @@ def obtener_texto_inicial():
             pass
     if estado.algoritmo_actual == "Esfera 3D con rejillas":
         return explicador.esfera_3d(estado.angulo_3d_x, estado.angulo_3d_y)
+
+    if estado.algoritmo_actual == "Gouraud vs Phong":
+        return explicacion_sombreado(estado_sombreado)
     
     return textos.get(estado.algoritmo_actual, "")
 
@@ -379,6 +431,9 @@ def obtener_texto_por_paso():
     
     if estado.algoritmo_actual == "Esfera 3D con rejillas":
         return explicador.esfera_3d(estado.angulo_3d_x, estado.angulo_3d_y)
+
+    if estado.algoritmo_actual == "Gouraud vs Phong":
+        return explicacion_sombreado(estado_sombreado)
     
     iteracion = estado.iteraciones[paso]
     datos = {
@@ -395,6 +450,8 @@ def obtener_texto_por_paso():
     return datos.get(estado.algoritmo_actual, lambda: {})()
 
 # ============ FUNCIONES DE DIBUJO ============
+# aqui se dibujan las curvas, los puntos y las iteraciones.
+# es la parte visual del programa, la que se ve en pantalla.
 def dibujar_curvas(superficie):
     """Dibuja curvas y puntos de control."""
     # Polilíneas de control
@@ -423,6 +480,8 @@ def dibujar_curvas(superficie):
         lienzo.dibujar_pixel(superficie, camara, punto.x_redondeado, punto.y_redondeado, (255, 255, 0))
 
 # ============ MANEJADORES DE EVENTOS ============
+# aqui se responden los clicks, el mouse y los botones.
+# todo lo que hace el usuario termina llegando a estas funciones.
 def manejar_eventos(evento):
     """Maneja eventos de pygame."""
     if evento.type == pygame.QUIT:
@@ -449,6 +508,9 @@ def manejar_eventos(evento):
             if estado.esfera_interactiva is None:
                 estado.esfera_interactiva = EsferaInteractiva(radio=0.8, resolucion=350)
             barra_estado.actualizar("Esfera interactiva - Mueve el mouse para iluminar")
+        elif estado.algoritmo_actual == "Gouraud vs Phong":
+            estado_sombreado.marcar_dirty()
+            barra_estado.actualizar("Gouraud vs Phong - Mueve luz y arrastra vértices")
         else:
             barra_estado.actualizar(f"Algoritmo seleccionado: {estado.algoritmo_actual}")
         
@@ -468,6 +530,7 @@ def manejar_eventos(evento):
         estado.arrastrando_3d = False
         estado.ultimo_mouse_3d = None
         estado.arrastrando_esfera = False
+        manejar_soltar_sombreado(estado_sombreado)
         manejar_soltar_cubo(estado_cubo)
 
     
@@ -487,6 +550,8 @@ def manejar_boton(evento):
         estado_cubo.angulo_y = 0
         estado_cubo.distancia_vista = 5
         estado_cubo.proyecciones = None
+        # Resetear sombreado interactivo
+        estado_sombreado.reiniciar()
         # Resetear esfera interactiva
         if estado.esfera_interactiva:
             estado.esfera_interactiva = EsferaInteractiva(radio=0.8, resolucion=350)
@@ -513,6 +578,14 @@ def manejar_ejecucion():
         actualizar_explicacion()
         return
     
+    if estado.algoritmo_actual == "Gouraud vs Phong":
+        estado.iteraciones = [Iteracion(1, 0, 0, 0, 0)]
+        estado.indice_actual = 1
+        estado_sombreado.marcar_dirty()
+        barra_estado.actualizar("Gouraud vs Phong - Interactúa con la luz y el triángulo")
+        actualizar_explicacion()
+        return
+
     if estado.algoritmo_actual == "Cubo 3D":
         actualizar_cubo(estado_cubo)
         estado.iteraciones = [Iteracion(1, 0, 0, 0, 0)]
@@ -556,6 +629,12 @@ def manejar_clic_mouse(evento):
                     mouse_y <= CONFIG['ALTO_LIENZO'])
     
     if not dentro_lienzo:
+        return
+
+    # Modo Gouraud vs Phong
+    if estado.algoritmo_actual == "Gouraud vs Phong":
+        manejar_clic_sombreado(evento, estado_sombreado, CONFIG)
+        actualizar_explicacion()
         return
     
     # Modo esfera interactiva
@@ -607,6 +686,18 @@ def manejar_clic_mouse(evento):
 
 def manejar_movimiento_mouse(evento):
     """Maneja movimiento del mouse."""
+    # Modo Gouraud vs Phong
+    if estado.algoritmo_actual == "Gouraud vs Phong":
+        mouse_x, mouse_y = evento.pos
+        dentro_lienzo = (
+            CONFIG['ANCHO_HERRAMIENTAS'] <= mouse_x <= CONFIG['ANCHO_HERRAMIENTAS'] + CONFIG['ANCHO_LIENZO']
+            and mouse_y <= CONFIG['ALTO_LIENZO']
+        )
+        if dentro_lienzo:
+            manejar_movimiento_sombreado(evento, estado_sombreado, CONFIG)
+            actualizar_explicacion()
+        return
+
     # Actualizar posición de la luz para la esfera interactiva
     if estado.algoritmo_actual == "Esfera 3D Interactiva":
         if estado.esfera_interactiva is None:
@@ -685,7 +776,9 @@ def main():
         dibujar_cuadricula(superficie_lienzo, camara, CONFIG['ANCHO_LIENZO'], CONFIG['ALTO_LIENZO'])
         
         # Dibujar según el algoritmo
-        if estado.algoritmo_actual == "Esfera 3D Interactiva":
+        if estado.algoritmo_actual == "Gouraud vs Phong":
+            dibujar_sombreado_interactivo(superficie_lienzo, estado_sombreado, CONFIG, fuente)
+        elif estado.algoritmo_actual == "Esfera 3D Interactiva":
             dibujar_esfera_interactiva(superficie_lienzo)
         elif estado.algoritmo_actual == "Esfera 3D con rejillas":
             dibujar_esfera(superficie_lienzo)

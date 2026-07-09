@@ -1,5 +1,8 @@
 from modelos.iteracion import Iteracion
 
+# este archivo hace una linea con una idea mas inteligente.
+# usa un error para decidir cuando bajar o mover a la derecha.
+
 
 def calcular(x1, y1, x2, y2):
 
@@ -15,6 +18,7 @@ def calcular(x1, y1, x2, y2):
 
     paso = 1
 
+    # este ciclo sigue hasta llegar al punto final.
     while True:
 
         resultado.append(
