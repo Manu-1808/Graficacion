@@ -1,3 +1,4 @@
+# ui/barra_herramientas.py
 import pygame
 import pygame_gui
 
@@ -21,6 +22,7 @@ class BarraHerramientas:
                 "Traslacion",
                 "Rotacion",
                 "Esfera 3D con rejillas",
+                "Esfera 3D Interactiva",
                 "Cubo 3D",
             ],
             starting_option="DDA",

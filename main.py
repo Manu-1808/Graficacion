@@ -1,3 +1,4 @@
+# main.py (actualizado para usar la nueva EsferaInteractiva)
 import numpy as np
 import pygame
 import pygame_gui
@@ -8,6 +9,8 @@ from algoritmos.bresenham import calcular as bresenham
 from algoritmos.bezier import calcular as bezier
 from algoritmos.bspline import calcular as bspline
 from algoritmos.grafica3d import generar_esfera
+from algoritmos.cubo3d import EstadoCubo3D, dibujar_cubo, actualizar_cubo, manejar_clic_cubo, manejar_movimiento_cubo, manejar_soltar_cubo
+from algoritmos.esfera_interactiva import EsferaInteractiva
 from modelos.iteracion import Iteracion
 from graficos.camara import Camara
 from graficos.cuadricula import dibujar as dibujar_cuadricula
@@ -16,16 +19,15 @@ from ui.barra_estado import BarraEstado
 from ui.barra_herramientas import BarraHerramientas
 from ui.panel_explicacion import PanelExplicacion
 from algoritmos.explicaciones import ExplicadorAlgoritmos
-from algoritmos.cubo3d import EstadoCubo3D, dibujar_cubo, actualizar_cubo, manejar_clic_cubo, manejar_movimiento_cubo, manejar_soltar_cubo
 
-# ============ CONFIGURACIÓN ============
+# configuraciones generales
 CONFIG = {
     'ANCHO': 1600,
     'ALTO': 800,
     'ANCHO_HERRAMIENTAS': 280,
-    'ANCHO_PANEL': 480,
+    'ANCHO_PANEL': 590,
     'ALTO_ESTADO': 40,
-    'VELOCIDAD_MS': 180,
+    'VELOCIDAD_MS': 200,
     'ZOOM_MIN': 5,
     'ZOOM_MAX': 100,
     'RADIO_ESFERA': 3,
@@ -73,6 +75,13 @@ class EstadoGlobal:
         self.angulo_3d_y = 0
         self.arrastrando_3d = False
         self.ultimo_mouse_3d = None
+        # Nueva esfera interactiva
+        self.esfera_interactiva = EsferaInteractiva(radio=0.8, resolucion=100)
+        self.modo_interactivo = False
+        self.mostrar_sombra = True
+        self.angulo_x = 35
+        self.angulo_y = 25
+        self.arrastrando_esfera = False
 
 estado = EstadoGlobal()
 estado_cubo = EstadoCubo3D()  # Estado del cubo 3D
@@ -121,7 +130,7 @@ def color_esfera_por_profundidad(z):
     t = np.clip((z + CONFIG['RADIO_ESFERA']) / (2 * CONFIG['RADIO_ESFERA']), 0, 1)
     # Contraste cúbico
     t_contrastado = 2 * t * t if t < 0.5 else 1 - 2 * (1 - t) * (1 - t)
-    rgba = cm.get_cmap('plasma')(np.clip(t_contrastado, 0, 1))
+    rgba = cm.get_cmap('rainbow')(np.clip(t_contrastado, 0, 1))
     brillo = 0.75 + 0.25 * t
     return tuple(int(c * 255 * brillo) for c in rgba[:3])
 
@@ -159,6 +168,58 @@ def dibujar_esfera(superficie):
             pygame.draw.polygon(superficie, color, puntos)
             pygame.draw.aalines(superficie, (180, 220, 255), True, puntos)
 
+# ============ FUNCIONES DE DIBUJO PARA ESFERA INTERACTIVA ============
+def dibujar_esfera_interactiva(superficie):
+    """Dibuja la esfera interactiva usando surfarray."""
+    if not hasattr(estado, 'esfera_interactiva') or estado.esfera_interactiva is None:
+        estado.esfera_interactiva = EsferaInteractiva(radio=0.8, resolucion=350)
+    
+    esfera = estado.esfera_interactiva
+    
+    # Obtener la superficie renderizada de la esfera
+    tamano = min(CONFIG['ANCHO_LIENZO'], CONFIG['ALTO_LIENZO']) - 40
+    esfera_surf = esfera.obtener_superficie(tamano=tamano)
+    
+    # Centrar la esfera en el lienzo
+    x_centro = (CONFIG['ANCHO_LIENZO'] - esfera_surf.get_width()) // 2
+    y_centro = (CONFIG['ALTO_LIENZO'] - esfera_surf.get_height()) // 2
+    
+    # Dibujar la esfera
+    superficie.blit(esfera_surf, (x_centro, y_centro))
+    
+    # Dibujar indicador de luz
+    dibujar_indicador_luz(superficie, esfera, x_centro, y_centro, tamano)
+
+def dibujar_indicador_luz(superficie, esfera, offset_x, offset_y, tamano):
+    """Dibuja un indicador de la posición de la luz."""
+    # La luz está en coordenadas 3D, la proyectamos a 2D
+    luz_x, luz_y, luz_z = esfera.luz_pos
+    
+    # Escala para convertir coordenadas 3D a píxeles
+    escala = tamano / 2.2
+    
+    # Proyectar la luz a 2D (simplificado)
+    luz_px = int(luz_x * escala + tamano // 2 + offset_x)
+    luz_py = int(luz_y * escala + tamano // 2 + offset_y)
+    
+    # Glow de la luz
+    for radius in range(25, 5, -5):
+        alpha = max(0, min(255, 200 - radius * 6))
+        color_luz = (255, 255, 200, alpha)
+        glow = pygame.Surface((50, 50), pygame.SRCALPHA)
+        pygame.draw.circle(glow, color_luz, (25, 25), radius)
+        superficie.blit(glow, (luz_px - 25, luz_py - 25))
+    
+    # Punto central de la luz
+    pygame.draw.circle(superficie, (255, 255, 200), (luz_px, luz_py), 6)
+    pygame.draw.circle(superficie, (255, 255, 255), (luz_px, luz_py), 3)
+    
+    # Línea conectora de la luz a la esfera (opcional)
+    centro_x = tamano // 2 + offset_x
+    centro_y = tamano // 2 + offset_y
+    pygame.draw.line(superficie, (255, 255, 200, 50), 
+                    (luz_px, luz_py), (centro_x, centro_y), 1)
+
 # ============ FUNCIONES DE ALGORITMOS ============
 def recalcular_curva():
     """Recalcula la curva según el algoritmo actual."""
@@ -169,6 +230,11 @@ def recalcular_curva():
     
     if estado.algoritmo_actual == "Cubo 3D":
         actualizar_cubo(estado_cubo)
+        actualizar_explicacion()
+        return
+    
+    if estado.algoritmo_actual == "Esfera 3D Interactiva":
+        # La esfera interactiva se actualiza en tiempo real
         actualizar_explicacion()
         return
     
@@ -232,10 +298,15 @@ def ejecutar_lineas():
 # ============ FUNCIONES DE UI ============
 def actualizar_explicacion():
     """Actualiza el panel de explicación."""
+    if estado.algoritmo_actual == "Esfera 3D Interactiva":
+        explicacion = explicador.explicacion(estado.esfera_interactiva)
+        panel_explicacion.actualizar(explicacion, fuente, reiniciar_scroll=False)
+        return
+    
     if estado.algoritmo_actual == "Cubo 3D":
         texto = explicador.cubo_3d(estado_cubo.angulo_x, estado_cubo.angulo_y, 
                                    estado_cubo.distancia_vista)
-        panel_explicacion.actualizar(texto, fuente)
+        panel_explicacion.actualizar(texto, fuente, reiniciar_scroll=False)
         return
     
     if not estado.iteraciones:
@@ -243,7 +314,7 @@ def actualizar_explicacion():
     else:
         texto = obtener_texto_por_paso()
     
-    panel_explicacion.actualizar(texto, fuente)
+    panel_explicacion.actualizar(texto, fuente, reiniciar_scroll=False)
 
 def obtener_texto_inicial():
     """Obtiene texto inicial según el algoritmo."""
@@ -273,6 +344,12 @@ def obtener_texto_inicial():
                                   r"Cada polígono se colorea por profundidad." + "\n" +
                                   r"Malla de triángulos que aproxima la esfera.",
         
+        "Esfera 3D Interactiva": r"\textbf{Esfera 3D Interactiva}" + "\n" +
+                                 r"Mueve el mouse para iluminar la esfera." + "\n" +
+                                 r"La luz sigue el cursor en tiempo real." + "\n" +
+                                 r"Arrastra para rotar la vista." + "\n" +
+                                 r"Renderizado con iluminación Blinn-Phong.",
+        
         "Cubo 3D": r"\textbf{Cubo 3D}" + "\n" +
                    r"Arrastra con el mouse para rotar." + "\n" +
                    r"Cubo renderizado en 3D con perspectiva." + "\n" +
@@ -283,12 +360,11 @@ def obtener_texto_inicial():
         try:
             if estado.algoritmo_actual == "Traslacion":
                 tx, ty = int(herramientas.input_tx.get_text()), int(herramientas.input_ty.get_text())
-                datos = explicador.traslacion(estado.puntos_control, tx, ty, 0, 0)
+                return explicador.traslacion(estado.puntos_control, tx, ty, 0, 0)
             else:
                 theta = float(herramientas.input_theta.get_text())
-                datos = explicador.rotacion(estado.puntos_control, theta, 0, 0)
-            return _dict_a_string(datos)
-        except:
+                return explicador.rotacion(estado.puntos_control, theta, 0, 0)
+        except (ValueError, TypeError):
             pass
     if estado.algoritmo_actual == "Esfera 3D con rejillas":
         return explicador.esfera_3d(estado.angulo_3d_x, estado.angulo_3d_y)
@@ -316,130 +392,9 @@ def obtener_texto_por_paso():
                                               len(estado.iteraciones), estado.indice_actual / len(estado.iteraciones))
     }
     
-    return _dict_a_string(datos.get(estado.algoritmo_actual, lambda: {})())
-
-def _dict_a_string(datos):
-    """Convierte diccionario a string formateado."""
-    if isinstance(datos, str):
-        return datos
-    lineas = [r"\textbf{" + datos.get('titulo', '') + "}\n"] if 'titulo' in datos else []
-    lineas.extend(linea['texto'] for linea in datos.get('lineas', []))
-    return "\n".join(lineas)
+    return datos.get(estado.algoritmo_actual, lambda: {})()
 
 # ============ FUNCIONES DE DIBUJO ============
-def dibujar_info_lateral(pantalla):
-    """Dibuja información lateral en pantalla."""
-    # Colores para mejor legibilidad
-    COLOR_TITULO = (255, 255, 100)  # Amarillo
-    COLOR_TEXTO = (255, 255, 255)   # Blanco
-    COLOR_SECCION = (100, 200, 255) # Celeste
-    COLOR_VALOR = (200, 255, 200)   # Verde claro
-    
-    # Separadores visuales
-    SEPARADOR = "-" * 20
-    
-    y = 380
-    margen_izquierdo = 10
-    espacio_entre_lineas = 30
-    
-    # --- SECCIÓN 1: Información general ---
-    titulo = f"=== {estado.algoritmo_actual.upper()} ==="
-    pantalla.blit(fuente.render(titulo, True, COLOR_TITULO), (margen_izquierdo, y))
-    y += espacio_entre_lineas + 5
-    
-    info_general = [
-        f"Puntos: {len(estado.puntos_control)}",
-        f"Zoom: {camara.zoom:.1f}x",
-        f"Paso: {estado.indice_actual}/{len(estado.iteraciones)}"
-    ]
-    
-    for texto in info_general:
-        pantalla.blit(fuente.render(texto, True, COLOR_TEXTO), (margen_izquierdo, y))
-        y += espacio_entre_lineas
-    
-    # Separador
-    y += 5
-    pantalla.blit(fuente.render(SEPARADOR, True, (100, 100, 100)), (margen_izquierdo, y))
-    y += espacio_entre_lineas
-    
-    # --- SECCIÓN 2: Controles 3D (si aplica) ---
-    if estado.algoritmo_actual == "Esfera 3D con rejillas":
-        pantalla.blit(fuente.render("CONTROLES 3D", True, COLOR_SECCION), (margen_izquierdo, y))
-        y += espacio_entre_lineas
-        
-        info_3d = [
-            f"Rotación X: {estado.angulo_3d_x}°",
-            f"Rotación Y: {estado.angulo_3d_y}°",
-            "[Arrastra para rotar]"
-        ]
-        for texto in info_3d:
-            pantalla.blit(fuente.render(texto, True, COLOR_TEXTO), (margen_izquierdo + 10, y))
-            y += espacio_entre_lineas
-        
-    elif estado.algoritmo_actual == "Cubo 3D":
-        pantalla.blit(fuente.render("CONTROLES 3D", True, COLOR_SECCION), (margen_izquierdo, y))
-        y += espacio_entre_lineas
-        
-        info_3d = [
-            f"Rotación X: {np.degrees(estado_cubo.angulo_x):.1f}°",
-            f"Rotación Y: {np.degrees(estado_cubo.angulo_y):.1f}°",
-            f"Distancia vista: {estado_cubo.distancia_vista:.1f}",
-            "[Arrastra para rotar]"
-        ]
-        for texto in info_3d:
-            pantalla.blit(fuente.render(texto, True, COLOR_TEXTO), (margen_izquierdo + 10, y))
-            y += espacio_entre_lineas
-    
-    # Separador (si hay sección 3D)
-    if estado.algoritmo_actual in ["Esfera 3D con rejillas", "Cubo 3D"]:
-        y += 5
-        pantalla.blit(fuente.render(SEPARADOR, True, (100, 100, 100)), (margen_izquierdo, y))
-        y += espacio_entre_lineas
-    
-    # --- SECCIÓN 3: Transformaciones (si aplica) ---
-    try:
-        tx = herramientas.input_tx.get_text()
-        ty = herramientas.input_ty.get_text()
-        theta = herramientas.input_theta.get_text()
-        
-        if tx or ty or theta:
-            pantalla.blit(fuente.render("TRANSFORMACIONES", True, COLOR_SECCION), (margen_izquierdo, y))
-            y += espacio_entre_lineas
-            
-            if tx and ty:
-                pantalla.blit(fuente.render(f"Traslación: Tx={tx}, Ty={ty}", True, COLOR_TEXTO), (margen_izquierdo + 10, y))
-                y += espacio_entre_lineas
-            if theta:
-                pantalla.blit(fuente.render(f"Rotación: θ={theta}°", True, COLOR_TEXTO), (margen_izquierdo + 10, y))
-                y += espacio_entre_lineas
-            
-            y += 5
-            pantalla.blit(fuente.render(SEPARADOR, True, (100, 100, 100)), (margen_izquierdo, y))
-            y += espacio_entre_lineas
-    except:
-        pass
-    
-    # --- SECCIÓN 4: Puntos de control ---
-    if estado.puntos_control:
-        pantalla.blit(fuente.render("PUNTOS DE CONTROL", True, COLOR_SECCION), (margen_izquierdo, y))
-        y += espacio_entre_lineas
-        
-        # Mostrar puntos en columnas si son muchos
-        puntos_mostrar = estado.puntos_control[:12]  # Limitar a 12 puntos
-        for i, punto in enumerate(puntos_mostrar):
-            # Formato más compacto
-            texto_punto = f"P{i}: ({punto[0]:.1f}, {punto[1]:.1f})" if isinstance(punto, (list, tuple)) and len(punto) >= 2 else f"P{i}: {punto}"
-            
-            # Colores alternados para legibilidad
-            color = COLOR_VALOR if i % 2 == 0 else COLOR_TEXTO
-            pantalla.blit(fuente.render(texto_punto, True, color), (margen_izquierdo + 10, y))
-            y += espacio_entre_lineas
-            
-            # Si hay demasiados puntos, mostrar indicador
-            if i == 11 and len(estado.puntos_control) > 12:
-                pantalla.blit(fuente.render(f"... y {len(estado.puntos_control) - 12} más", True, (150, 150, 150)), (margen_izquierdo + 10, y))
-                break
-
 def dibujar_curvas(superficie):
     """Dibuja curvas y puntos de control."""
     # Polilíneas de control
@@ -474,11 +429,15 @@ def manejar_eventos(evento):
         return False
     
     manager.process_events(evento)
-    
+
+    if panel_explicacion.manejar_evento(evento):
+        return True
+
     if evento.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED and evento.ui_element == herramientas.combo:
         estado.algoritmo_actual = evento.text
         estado.iteraciones.clear()
         estado.indice_actual = 0
+        panel_explicacion.scroll_y = 0
         
         if estado.algoritmo_actual == "Esfera 3D con rejillas":
             generar_datos_esfera()
@@ -486,6 +445,10 @@ def manejar_eventos(evento):
         elif estado.algoritmo_actual == "Cubo 3D":
             actualizar_cubo(estado_cubo)
             barra_estado.actualizar("Mostrando cubo 3D - Arrastra para rotar")
+        elif estado.algoritmo_actual == "Esfera 3D Interactiva":
+            if estado.esfera_interactiva is None:
+                estado.esfera_interactiva = EsferaInteractiva(radio=0.8, resolucion=350)
+            barra_estado.actualizar("Esfera interactiva - Mueve el mouse para iluminar")
         else:
             barra_estado.actualizar(f"Algoritmo seleccionado: {estado.algoritmo_actual}")
         
@@ -504,7 +467,9 @@ def manejar_eventos(evento):
         estado.arrastrando = estado.punto_arrastrando = False
         estado.arrastrando_3d = False
         estado.ultimo_mouse_3d = None
+        estado.arrastrando_esfera = False
         manejar_soltar_cubo(estado_cubo)
+
     
     return True
 
@@ -522,6 +487,9 @@ def manejar_boton(evento):
         estado_cubo.angulo_y = 0
         estado_cubo.distancia_vista = 5
         estado_cubo.proyecciones = None
+        # Resetear esfera interactiva
+        if estado.esfera_interactiva:
+            estado.esfera_interactiva = EsferaInteractiva(radio=0.8, resolucion=350)
         barra_estado.actualizar("Proyecto reiniciado")
         actualizar_explicacion()
     
@@ -536,6 +504,15 @@ def manejar_boton(evento):
 
 def manejar_ejecucion():
     """Maneja la ejecución del algoritmo seleccionado."""
+    if estado.algoritmo_actual == "Esfera 3D Interactiva":
+        if estado.esfera_interactiva is None:
+            estado.esfera_interactiva = EsferaInteractiva(radio=0.8, resolucion=100)
+        estado.iteraciones = [Iteracion(1, 0, 0, 0, 0)]
+        estado.indice_actual = 1
+        barra_estado.actualizar("Esfera interactiva - Mueve el mouse para iluminar")
+        actualizar_explicacion()
+        return
+    
     if estado.algoritmo_actual == "Cubo 3D":
         actualizar_cubo(estado_cubo)
         estado.iteraciones = [Iteracion(1, 0, 0, 0, 0)]
@@ -581,12 +558,23 @@ def manejar_clic_mouse(evento):
     if not dentro_lienzo:
         return
     
+    # Modo esfera interactiva
+    if estado.algoritmo_actual == "Esfera 3D Interactiva":
+        if estado.esfera_interactiva is None:
+            estado.esfera_interactiva = EsferaInteractiva(radio=0.8, resolucion=350)
+        
+        if evento.button == 1:
+            # Iniciar arrastre para rotación (no implementado en esta versión)
+            estado.arrastrando_esfera = True
+            estado.ultimo_mouse = (mouse_x, mouse_y)
+        return
+    
     # Modo cubo 3D
     if estado.algoritmo_actual == "Cubo 3D":
         manejar_clic_cubo(evento, estado_cubo)
         return
     
-    # Modo esfera 3D
+    # Modo esfera 3D con rejillas
     if estado.algoritmo_actual == "Esfera 3D con rejillas":
         if evento.button == 1:
             estado.arrastrando_3d = True
@@ -619,7 +607,22 @@ def manejar_clic_mouse(evento):
 
 def manejar_movimiento_mouse(evento):
     """Maneja movimiento del mouse."""
-    # Rotación 3D de la esfera
+    # Actualizar posición de la luz para la esfera interactiva
+    if estado.algoritmo_actual == "Esfera 3D Interactiva":
+        if estado.esfera_interactiva is None:
+            return
+        
+        mouse_x, mouse_y = evento.pos
+        if (CONFIG['ANCHO_HERRAMIENTAS'] <= mouse_x <= CONFIG['ANCHO_HERRAMIENTAS'] + CONFIG['ANCHO_LIENZO'] and
+            mouse_y <= CONFIG['ALTO_LIENZO']):
+            # Calcular posición relativa al lienzo
+            rel_x = mouse_x - CONFIG['ANCHO_HERRAMIENTAS']
+            rel_y = mouse_y
+            estado.esfera_interactiva.actualizar_luz(rel_x, rel_y, CONFIG['ANCHO_LIENZO'], CONFIG['ALTO_LIENZO'])
+            actualizar_explicacion()
+        return
+    
+    # Rotación 3D de la esfera con rejillas
     if estado.arrastrando_3d and estado.ultimo_mouse_3d:
         dx = evento.pos[0] - estado.ultimo_mouse_3d[0]
         dy = evento.pos[1] - estado.ultimo_mouse_3d[1]
@@ -682,7 +685,9 @@ def main():
         dibujar_cuadricula(superficie_lienzo, camara, CONFIG['ANCHO_LIENZO'], CONFIG['ALTO_LIENZO'])
         
         # Dibujar según el algoritmo
-        if estado.algoritmo_actual == "Esfera 3D con rejillas":
+        if estado.algoritmo_actual == "Esfera 3D Interactiva":
+            dibujar_esfera_interactiva(superficie_lienzo)
+        elif estado.algoritmo_actual == "Esfera 3D con rejillas":
             dibujar_esfera(superficie_lienzo)
         elif estado.algoritmo_actual == "Cubo 3D":
             dibujar_cubo(superficie_lienzo, estado_cubo, camara, CONFIG)
@@ -690,7 +695,6 @@ def main():
             dibujar_curvas(superficie_lienzo)
         
         panel_explicacion.dibujar(pantalla)
-        dibujar_info_lateral(pantalla)
         barra_estado.dibujar(pantalla, fuente)
         manager.draw_ui(pantalla)
         pygame.display.update()
